@@ -9,9 +9,8 @@ interface GenerateStoryRequest {
 
 // ============================================
 // DeepSeek API 配置
-// 请在此处填写你的 DeepSeek API Key
 // ============================================
-const DEEPSEEK_API_KEY = "sk-40e5d2076d2b47218005e49fdc382fb5"; // 请替换为你的 API Key
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 export async function POST(request: Request) {

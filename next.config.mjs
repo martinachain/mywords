@@ -22,6 +22,8 @@ const nextConfig = {
     buildActivity: false,
     buildActivityPosition: "bottom-right",
   },
+  // 确保输出模式正确（Netlify 需要）
+  output: undefined, // 让 Next.js 自动检测，Netlify 插件会处理
 };
 
 export default withPWA(nextConfig);

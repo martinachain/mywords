@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 // ============================================
 // DeepSeek API 配置
 // ============================================
-const DEEPSEEK_API_KEY = "sk-40e5d2076d2b47218005e49fdc382fb5";
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 export async function GET(request: Request) {
@@ -78,9 +78,6 @@ export async function GET(request: Request) {
       const jsonContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
       wordInfo = JSON.parse(jsonContent);
     } catch (parseError) {
-      // 如果解析失败，尝试从文本中提取信息
-      console.warn("Failed to parse JSON, trying to extract from text:", content);
-      
       // 如果解析失败，尝试从文本中提取信息
       console.warn("Failed to parse JSON, trying to extract from text:", content);
       
