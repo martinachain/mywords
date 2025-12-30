@@ -50,7 +50,7 @@ export function Flashcard({ word, onFlip }: FlashcardProps) {
               <div className="text-center space-y-4">
                 <div className="flex items-center justify-center gap-3">
                   <h2 className="text-4xl font-bold">{word.word}</h2>
-                  <PronunciationButton word={word.word} size="md" />
+                  <PronunciationButton word={word.word} size="default" />
                 </div>
                 {word.phonetic && (
                   <p className="text-xl text-muted-foreground">{word.phonetic}</p>

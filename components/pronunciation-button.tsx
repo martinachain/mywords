@@ -1,14 +1,15 @@
 "use client";
 
 import { Volume2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { playPronunciation } from "@/lib/pronunciation";
 import { useState } from "react";
+import type { VariantProps } from "class-variance-authority";
 
 interface PronunciationButtonProps {
   word: string;
-  size?: "sm" | "md" | "lg";
-  variant?: "ghost" | "outline";
+  size?: VariantProps<typeof buttonVariants>["size"];
+  variant?: VariantProps<typeof buttonVariants>["variant"];
 }
 
 export function PronunciationButton({
