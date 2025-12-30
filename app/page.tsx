@@ -56,6 +56,9 @@ export default function Home() {
       const words = await getWords();
       setSavedWords(words);
       
+      // 清空输入框
+      setInputWord("");
+      
       // 播放提示音
       playNotificationSound();
     } catch (error) {
@@ -88,6 +91,8 @@ export default function Home() {
         setWordData(newWord);
         const words = await getWords();
         setSavedWords(words);
+        // 清空输入框
+        setInputWord("");
         // 滚动到顶部显示查询结果
         window.scrollTo({ top: 0, behavior: "smooth" });
         // 播放提示音
