@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// 检查是否为游客模式（通过 cookie）
+function isGuestMode(request: NextRequest): boolean {
+  const guestModeCookie = request.cookies.get("mywords_guest_mode");
+  return guestModeCookie?.value === "true";
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -39,7 +45,10 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/auth/callback");
 
-  if (!user && !isPublicRoute) {
+  // 检查是否为游客模式
+  const guestMode = isGuestMode(request);
+
+  if (!user && !isPublicRoute && !guestMode) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("redirect", request.nextUrl.pathname);

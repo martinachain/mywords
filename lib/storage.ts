@@ -1,5 +1,6 @@
 import { Word, WordStatus } from "@/types/word";
 import { createClient } from "./supabase/client";
+import { isGuestMode, getGuestUserId } from "./guest";
 
 // 数据库类型定义
 interface DatabaseWord {
@@ -45,6 +46,16 @@ export async function getWords(): Promise<Word[]> {
   if (typeof window === "undefined") return [];
   
   try {
+    // 如果是游客模式，从 localStorage 读取
+    if (isGuestMode()) {
+      const guestUserId = getGuestUserId();
+      const storedWords = localStorage.getItem(`guest_words_${guestUserId}`);
+      if (storedWords) {
+        return JSON.parse(storedWords);
+      }
+      return [];
+    }
+
     const supabase = createClient();
     
     // 获取当前用户
@@ -77,6 +88,25 @@ export async function saveWord(word: Word): Promise<void> {
   if (typeof window === "undefined") return;
   
   try {
+    // 如果是游客模式，保存到 localStorage
+    if (isGuestMode()) {
+      const guestUserId = getGuestUserId();
+      const storedWords = localStorage.getItem(`guest_words_${guestUserId}`);
+      let words: Word[] = storedWords ? JSON.parse(storedWords) : [];
+      
+      // 检查单词是否已存在
+      const existingIndex = words.findIndex(w => w.word.toLowerCase() === word.word.toLowerCase());
+      if (existingIndex >= 0) {
+        // 单词已存在，不重复添加
+        return;
+      }
+      
+      // 添加新单词
+      words.unshift(word); // 添加到开头（最新在前）
+      localStorage.setItem(`guest_words_${guestUserId}`, JSON.stringify(words));
+      return;
+    }
+
     const supabase = createClient();
     
     // 获取当前用户
@@ -119,6 +149,18 @@ export async function removeWord(wordId: string): Promise<void> {
   if (typeof window === "undefined") return;
   
   try {
+    // 如果是游客模式，从 localStorage 删除
+    if (isGuestMode()) {
+      const guestUserId = getGuestUserId();
+      const storedWords = localStorage.getItem(`guest_words_${guestUserId}`);
+      if (storedWords) {
+        let words: Word[] = JSON.parse(storedWords);
+        words = words.filter(w => w.id !== wordId);
+        localStorage.setItem(`guest_words_${guestUserId}`, JSON.stringify(words));
+      }
+      return;
+    }
+
     const supabase = createClient();
     
     // 获取当前用户
@@ -148,6 +190,21 @@ export async function updateWordStatus(wordId: string, status: WordStatus): Prom
   if (typeof window === "undefined") return;
   
   try {
+    // 如果是游客模式，更新 localStorage
+    if (isGuestMode()) {
+      const guestUserId = getGuestUserId();
+      const storedWords = localStorage.getItem(`guest_words_${guestUserId}`);
+      if (storedWords) {
+        let words: Word[] = JSON.parse(storedWords);
+        const wordIndex = words.findIndex(w => w.id === wordId);
+        if (wordIndex >= 0) {
+          words[wordIndex].status = status;
+          localStorage.setItem(`guest_words_${guestUserId}`, JSON.stringify(words));
+        }
+      }
+      return;
+    }
+
     const supabase = createClient();
     
     // 获取当前用户
@@ -170,6 +227,53 @@ export async function updateWordStatus(wordId: string, status: WordStatus): Prom
   } catch (error) {
     console.error("Error updating word status:", error);
     throw error;
+  }
+}
+
+// 迁移游客数据到用户账号
+export async function migrateGuestWordsToUser(userId: string): Promise<void> {
+  if (typeof window === "undefined") return;
+  
+  try {
+    const guestUserId = getGuestUserId();
+    const storedWords = localStorage.getItem(`guest_words_${guestUserId}`);
+    
+    if (!storedWords) {
+      return; // 没有游客数据
+    }
+    
+    const guestWords: Word[] = JSON.parse(storedWords);
+    if (guestWords.length === 0) {
+      return; // 没有单词需要迁移
+    }
+    
+    const supabase = createClient();
+    
+    // 批量迁移单词到数据库
+    for (const word of guestWords) {
+      // 检查单词是否已存在
+      const { data: existing } = await supabase
+        .from("words")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("word", word.word.toLowerCase())
+        .single();
+      
+      if (!existing) {
+        // 插入新单词
+        const dbWord = wordToDbWord(word, userId);
+        await supabase.from("words").insert({
+          ...dbWord,
+          user_id: userId,
+        });
+      }
+    }
+    
+    // 清除游客数据
+    localStorage.removeItem(`guest_words_${guestUserId}`);
+  } catch (error) {
+    console.error("Error migrating guest words:", error);
+    // 不抛出错误，避免影响注册流程
   }
 }
 

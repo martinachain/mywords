@@ -8,9 +8,11 @@ import Link from "next/link";
 import { WordList } from "@/components/word-list";
 import { PronunciationButton } from "@/components/pronunciation-button";
 import { Word, WordStatus } from "@/types/word";
-import { getWords, saveWord, removeWord, updateWordStatus } from "@/lib/storage";
+import { getWords, saveWord, removeWord, updateWordStatus, migrateGuestWordsToUser } from "@/lib/storage";
 import { queryWord } from "@/lib/word-query";
 import { playNotificationSound } from "@/lib/sound";
+import { isGuestMode, disableGuestMode } from "@/lib/guest";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
   const [inputWord, setInputWord] = useState("");
@@ -25,6 +27,29 @@ export default function Home() {
       setSavedWords(words);
     };
     loadWords();
+  }, []);
+
+  // 检查用户登录状态，如果登录且之前是游客模式，迁移数据
+  useEffect(() => {
+    const checkAndMigrate = async () => {
+      if (isGuestMode()) {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          // 用户已登录，迁移游客数据
+          await migrateGuestWordsToUser(user.id);
+          disableGuestMode();
+          document.cookie = "mywords_guest_mode=; path=/; max-age=0";
+          
+          // 重新加载单词
+          const words = await getWords();
+          setSavedWords(words);
+        }
+      }
+    };
+    
+    checkAndMigrate();
   }, []);
 
   // 查询单词
